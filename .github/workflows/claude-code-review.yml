@@ -1,0 +1,32 @@
+name: Claude Code Review
+
+on:
+  pull_request:
+    types: [opened, synchronize, ready_for_review, reopened]
+
+jobs:
+  claude-review:
+    # Prevents running on forks for security reasons, as secrets aren't accessible on forks
+    if: github.event.pull_request.head.repo.fork == false && github.actor != 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write # Required for Claude to post comments/reviews
+      issues: read # Optional, for broader context
+      id-token: write # Required for authentication
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v6
+      with:
+        fetch-depth: 1 # Only fetches the most recent commit
+
+    - name: Run Claude Code Review
+      id: claude-review
+      uses: [anthropics/claude-code-action@v1](https://github.com/anthropics/claude-code-action)
+      with:
+        anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+        # The 'prompt' parameter can be used to give Claude specific instructions
+        prompt: |
+          Review the PR changes for potential bugs, style issues, and adherence to our standards.
+          Provide a detailed comment with findings and suggestions, categorized by severity (Critical, Warning, Suggestion).
